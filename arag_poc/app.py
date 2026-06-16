@@ -1,16 +1,20 @@
 import asyncio
 import json
 import uuid
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
-from agents import AGENTS, PHASES, run_agent
 
+from arag_poc.agents import AGENTS, PHASES, run_agent
+
+BASE_DIR = Path(__file__).parent
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # In-memory claim store
 claims = {}
