@@ -6,7 +6,6 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
 from arag_poc.agents import AGENTS, PHASES, run_agent
@@ -14,19 +13,15 @@ from arag_poc.agents import AGENTS, PHASES, run_agent
 BASE_DIR = Path(__file__).parent
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # In-memory claim store
 claims = {}
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "phases": PHASES,
-        "agents": AGENTS
-    })
+async def index():
+    html = (BASE_DIR / "templates" / "index.html").read_text()
+    return HTMLResponse(html)
 
 
 @app.post("/claim")
