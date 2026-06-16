@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARAG — Agentic Claimsflow PoC</title>
+<style>
+:root{--blue:#003366;--blue2:#0055a5;--amber:#F4A300;--amber2:#b87a00;--green:#1a7a3f;--green-bg:#edfaf1;--red:#c0392b;--red-bg:#fdf3f4;--border:#dde3ec;--bg:#eef2f7;--card:#fff;--muted:#6c757d}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#1a1a2e;font-size:13.5px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* Header */
+header{background:var(--blue);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.hd-left{display:flex;align-items:center;gap:14px}
+.hd-logo{font-size:24px;font-weight:900;color:var(--amber);letter-spacing:1px}
+.hd-sep{width:2px;height:26px;background:rgba(255,255,255,.25)}
+.hd-title{font-size:14px;font-weight:700}
+.hd-sub{font-size:11px;opacity:.65}
+.hd-right{display:flex;align-items:center;gap:10px}
+.mode-pill{background:var(--amber);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.stat-pill{background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:11px}
+.elapsed{font-size:11px;opacity:.5;font-variant-numeric:tabular-nums}
+
+/* Phase progress bar */
+.phase-bar{background:var(--blue);padding:0 20px 8px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ph-tabs{display:flex;gap:0;flex:1}
+.ph-tab{flex:1;text-align:center;font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;padding:3px;transition:.3s;border-bottom:2px solid transparent}
+.ph-tab.active{color:var(--amber);border-bottom-color:var(--amber);font-weight:700}
+.ph-tab.done{color:rgba(255,255,255,.7);border-bottom-color:rgba(255,255,255,.4)}
+.prog-track{flex:3;height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--amber);border-radius:3px;transition:width .6s ease;width:0}
+.prog-pct{font-size:10px;color:rgba(255,255,255,.55);min-width:28px;text-align:right}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:300px 1fr 330px;gap:0;flex:1;overflow:hidden}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--card);overflow:hidden}
+.panel:last-child{border-right:none}
+.panel-hd{background:var(--blue);color:#fff;padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;flex-shrink:0}
+.panel-body{overflow-y:auto;padding:14px;flex:1}
+
+/* Form */
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:#fafbfc;transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+.fg textarea{resize:vertical}
+.btn-go{background:var(--blue);color:#fff;border:none;border-radius:7px;width:100%;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:4px}
+.btn-go:hover:not(:disabled){background:var(--blue2)}
+.btn-go:disabled{opacity:.55;cursor:not-allowed}
+.divider{text-align:center;font-size:11px;color:var(--muted);margin:12px 0;border-top:1px solid var(--border);padding-top:12px}
+.samples{display:flex;flex-direction:column;gap:6px}
+.sc{background:#f7f9fc;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s}
+.sc:hover{background:#e8f0fb;border-color:var(--blue)}
+.sc .sb{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--blue);margin-bottom:2px;letter-spacing:.4px}
+.sc .sn{font-size:13px;font-weight:600}
+.sc .sd{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Flow */
+.flow-body{display:flex;flex-direction:column;align-items:center;gap:0;padding:14px 16px;overflow-y:auto;flex:1}
+.phase-sec{width:100%;max-width:440px;border-radius:11px;padding:10px;margin-bottom:6px}
+#ps-intake{background:#fff8f0;border:1.5px solid #ffe0b2}
+#ps-assessment{background:#f0f4ff;border:1.5px solid #c5d3f0}
+#ps-handling{background:#f0faf4;border:1.5px solid #b2dfcc}
+.ph-hd{width:100%;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid currentColor;opacity:.7}
+.ph-hd-intake{color:#b85c00;border-color:#ffe0b2}
+.ph-hd-assessment{color:#1a3a8f;border-color:#c5d3f0}
+.ph-hd-handling{color:#1a5a3a;border-color:#b2dfcc}
+.ph-num{width:18px;height:18px;border-radius:50%;background:currentColor;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+
+/* Nodes */
+.node{width:100%;display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;border:2px solid var(--border);background:#fff;transition:all .3s;font-size:12.5px;margin-bottom:4px}
+.node .ni{font-size:17px;width:20px;text-align:center;flex-shrink:0}
+.node .nl{font-weight:600;flex:1;color:var(--muted)}
+.node .ns{font-size:9.5px;color:#aaa}
+.node-active{border-color:var(--blue);background:#e8f0fb;animation:pulse 1.4s infinite}
+.node-active .nl{color:var(--blue);font-weight:700}
+.node-done{border-color:var(--green);background:var(--green-bg)}
+.node-done .nl{color:var(--green)}
+.node-done .ns{color:var(--green)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,51,102,.3)}50%{box-shadow:0 0 0 8px rgba(0,51,102,0)}}
+
+/* Sub nodes */
+.subs{width:100%;display:flex;flex-direction:column;gap:3px;padding-left:20px;margin-bottom:4px}
+.sub-node{display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:6px;border:1.5px dashed var(--border);background:#fafbfc;font-size:11.5px;display:none;transition:all .3s}
+.sub-node .ni{font-size:13px;width:16px;text-align:center}
+.sub-node .nl{font-weight:600;flex:1;color:var(--muted)}
+.sub-node .ns{font-size:9px;color:#aaa}
+.sub-node.show{display:flex;animation:slideIn .25s ease}
+.sub-node.node-active{border-color:var(--blue2);background:#e8f0fb;border-style:solid}
+.sub-node.node-active .nl{color:var(--blue2)}
+.sub-node.node-done{border-color:var(--green);background:var(--green-bg);border-style:solid}
+.sub-node.node-done .nl{color:var(--green)}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+
+/* Checkpoint */
+.cp-node{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:2px dashed var(--amber);background:#fffbf0;margin:6px 0;color:var(--amber2)}
+.cp-node .ni{font-size:18px;flex-shrink:0}
+.cp-node .nl{font-weight:700;font-size:12.5px}
+.cp-node .ns{font-size:10px;color:var(--muted)}
+.cp-node.cp-active{border-style:solid;animation:pulseAmber 1.2s infinite}
+.cp-node.cp-done{border-color:var(--green);background:var(--green-bg);color:var(--green);border-style:solid}
+@keyframes pulseAmber{0%,100%{box-shadow:0 0 0 0 rgba(244,163,0,.4)}50%{box-shadow:0 0 0 10px rgba(244,163,0,0)}}
+
+/* Jurist panel */
+.jp{width:100%;background:#fff;border:2px solid var(--amber);border-radius:11px;padding:14px;margin:4px 0;display:none;animation:fadeUp .35s ease}
+.jp.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.jp-hd{font-size:13.5px;font-weight:800;color:var(--amber2);margin-bottom:3px}
+.jp-sub{font-size:11px;color:var(--muted);margin-bottom:9px}
+.jp-sum{background:#f8f9fa;border:1px solid var(--border);border-radius:7px;padding:9px;max-height:150px;overflow-y:auto;font-size:11px;line-height:1.6;white-space:pre-wrap;margin-bottom:9px}
+.jp-al{font-weight:700;color:var(--blue);font-size:11px;margin-top:5px}
+.jp-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:8px}
+.jp-btn{border:none;border-radius:6px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.jp-btn.approve{background:#28a745;color:#fff}
+.jp-btn.adjust{background:#007bff;color:#fff}
+.jp-btn.escalate{background:#d35400;color:#fff}
+.jp-btn.reject{background:var(--red);color:#fff}
+.jp-btn:hover{filter:brightness(1.1)}
+.jp-btn:disabled{opacity:.5;cursor:not-allowed}
+.jp-note{width:100%;padding:6px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;resize:none}
+
+/* Outcome */
+.oc{width:100%;border-radius:11px;overflow:hidden;margin-top:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none;animation:fadeUp .4s ease}
+.oc.show{display:block}
+.oc-hd{padding:13px 16px;font-size:17px;font-weight:800}
+.oc-hd.ok{background:var(--green-bg);color:var(--green)}
+.oc-hd.warn{background:#fff3cd;color:#856404}
+.oc-hd.err{background:var(--red-bg);color:var(--red)}
+.oc-body{padding:13px 16px;background:#fff;font-size:12.5px;line-height:1.7}
+.oc-body ul{padding-left:16px}
+.oc-body li{margin-bottom:3px}
+
+/* Log panel */
+.panel-log{background:#0d1117}
+.panel-log .panel-hd{background:#161b22;border-bottom:1px solid #30363d;color:#58a6ff}
+.log-c{flex:1;overflow-y:auto;padding:10px 11px;font-family:'Consolas','Monaco',monospace;font-size:11px;color:#c9d1d9}
+.log-ph{padding:7px 0 3px;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-top:1px solid #30363d;margin-top:7px;margin-bottom:3px}
+.log-ph.intake{color:#b85c00}.log-ph.assessment{color:#58a6ff}.log-ph.handling{color:#3fb950}
+.log-e{margin-bottom:12px;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.log-eh{display:flex;align-items:center;gap:5px;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #21262d}
+.log-nm{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+.log-ts{margin-left:auto;font-size:9px;color:#484f58}
+.log-sub-pfx{color:#484f58;margin-right:1px}
+.log-bd{color:#e6edf3;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.log-bd.sub{color:#8b949e;padding-left:12px;border-left:2px solid #30363d;font-size:10.5px}
+.cursor{display:inline-block;width:6px;height:11px;background:#58a6ff;animation:blink .8s infinite;vertical-align:text-bottom;margin-left:1px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cn-transcription{color:#79c0ff}.cn-summary{color:#a5d6ff}.cn-key_facts{color:#ffa657}
+.cn-completeness{color:#3fb950}.cn-coverage{color:#56d364}.cn-legal_analysis{color:#d2a8ff}
+.cn-legal_research{color:#a371f7}.cn-similar_cases{color:#f78166}.cn-key_facts_refined{color:#ffa657}
+.cn-next_best_action{color:#ff7b72}.cn-letter{color:#7ee787}.cn-legal_drafting{color:#56d364}
+.cn-system{color:#f4a300}
+.log-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100px;color:#4a5568;gap:4px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo">ARAG</div>
+    <div class="hd-sep"></div>
+    <div>
+      <div class="hd-title">Agentic Claimsflow</div>
+      <div class="hd-sub">Proof of Concept · Digital Innovation &amp; AI</div>
+    </div>
+  </div>
+  <div class="hd-right">
+    <div class="mode-pill">⚡ Demo Mode</div>
+    <div class="stat-pill" id="agentCtr">0 / 11 agents</div>
+    <div class="elapsed" id="elapsed">00:00</div>
+  </div>
+</header>
+
+<div class="phase-bar">
+  <div class="ph-tabs">
+    <div class="ph-tab" id="pht-intake">Fase 1: Intake</div>
+    <div class="ph-tab" id="pht-assessment">Fase 2: Beoordeling</div>
+    <div class="ph-tab" id="pht-handling">Fase 3: Afhandeling</div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="pFill"></div></div>
+  <div class="prog-pct" id="pPct">0%</div>
+</div>
+
+<div class="grid">
+
+<!-- LEFT -->
+<div class="panel">
+  <div class="panel-hd">📥 Claim Indienen</div>
+  <div class="panel-body">
+    <form id="claimForm">
+      <div class="fg"><label>Naam klant</label><input id="fnaam" type="text" placeholder="Jan de Vries" value="Piet Janssen"></div>
+      <div class="fg"><label>Polisnummer</label><input id="fpolis" type="text" placeholder="ARAG-2024-12345" value="ARAG-2024-88123"></div>
+      <div class="fg">
+        <label>Type claim</label>
+        <select id="ftype">
+          <option value="arbeidsrecht" selected>Arbeidsrecht</option>
+          <option value="huurrecht">Huurrecht</option>
+          <option value="consumentenrecht">Consumentenrecht</option>
+          <option value="familierecht">Familierecht</option>
+          <option value="verkeersrecht">Verkeersrecht</option>
+        </select>
+      </div>
+      <div class="fg"><label>Omschrijving situatie</label><textarea id="fomsch" rows="4">Ik ben op staande voet ontslagen wegens diefstal, maar ik heb niets gestolen. Mijn werkgever bij Bouwbedrijf De Vries BV geeft geen enkel bewijs. Ik werk al 8 jaar bij dit bedrijf en heb altijd goed gefunctioneerd.</textarea></div>
+      <div class="fg"><label>Geschat financieel belang</label><input id="fbelang" type="text" value="45000"></div>
+      <div class="fg"><label>Wederpartij</label><input id="fweder" type="text" value="Bouwbedrijf De Vries BV"></div>
+      <button type="submit" class="btn-go" id="goBtn">🚀 Claim Indienen</button>
+    </form>
+
+    <div class="divider">— of laad voorbeeldclaim —</div>
+    <div class="samples">
+      <button class="sc" onclick="loadSample('arbeidsrecht')">
+        <div class="sb">⚖️ Arbeidsrecht</div>
+        <div class="sn">Piet Janssen</div>
+        <div class="sd">Ontslag op staande voet zonder bewijs</div>
+      </button>
+      <button class="sc" onclick="loadSample('huurrecht')">
+        <div class="sb">🏠 Huurrecht</div>
+        <div class="sn">Maria Garcia</div>
+        <div class="sd">Defecte cv-ketel, verhuurder reageert niet</div>
+      </button>
+      <button class="sc" onclick="loadSample('consumentenrecht')">
+        <div class="sb">🚗 Consumentenrecht</div>
+        <div class="sn">Tom Bakker</div>
+        <div class="sd">Auto non-conformiteit na 2 weken</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CENTER -->
+<div class="panel">
+  <div class="panel-hd">🔄 Agent Flow</div>
+  <div class="flow-body" id="flowBody">
+
+    <!-- Fase 1 -->
+    <div class="phase-sec" id="ps-intake">
+      <div class="ph-hd ph-hd-intake"><div class="ph-num">1</div>Intake</div>
+      <div class="node" id="n-transcription"><span class="ni">📝</span><span class="nl">Transcription Agent</span><span class="ns">Wachtend</span></div>
+      <div class="node" id="n-summary"><span class="ni">📋</span><span class="nl">Summary Agent</span><span class="ns">Wachtend</span></div>
+      <div class="node" id="n-key_facts"><span class="ni">🔑</span><span class="nl">Key Facts Agent</span><span class="ns">Wachtend</span></div>
+      <div class="node" id="n-completeness"><span class="ni">☑️</span><span class="nl">Completeness Check Agent</span><span class="ns">Wachtend</span></div>
+      <div class="node" id="n-coverage"><span class="ni">🔍</span><span class="nl">Coverage Review Agent</span><span class="ns">Wachtend</span></div>
+    </div>
+
+    <!-- Fase 2 -->
+    <div class="phase-sec" id="ps-assessment">
+      <div class="ph-hd ph-hd-assessment"><div class="ph-num">2</div>Beoordeling</div>
+      <div class="node" id="n-legal_analysis"><span class="ni">⚖️</span><span class="nl">Legal Analysis Agent</span><span class="ns">Wachtend</span></div>
+      <div class="subs" id="subs-legal_analysis">
+        <div class="sub-node" id="n-legal_research"><span class="ni">📚</span><span class="nl">Legal Research Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-similar_cases"><span class="ni">🗂️</span><span class="nl">Similar Cases Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-key_facts_refined"><span class="ni">🔑</span><span class="nl">Key Facts Agent (verfijning)</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-next_best_action"><span class="ni">🎯</span><span class="nl">Next Best Action Agent</span><span class="ns">—</span></div>
+      </div>
+      <div class="cp-node" id="cp1"><span class="ni">👤</span><div><div class="nl">Jurist Checkpoint 1</div><div class="ns">Beoordeling juridische analyse</div></div></div>
+      <div class="jp" id="jp1">
+        <div class="jp-hd">⚠️ Jurist Actie Vereist — Beoordeling</div>
+        <div class="jp-sub">Beoordeel de juridische analyse en beslis hoe verder.</div>
+        <div class="jp-sum" id="jpsum1"></div>
+        <div class="fg"><label>Toelichting (optioneel)</label><textarea class="jp-note" id="jpnote1" rows="2" placeholder="Feedback voor agents of toelichting..."></textarea></div>
+        <div class="jp-btns">
+          <button class="jp-btn approve" onclick="decide(1,'goedkeuren')">✅ Goedkeuren</button>
+          <button class="jp-btn adjust" onclick="decide(1,'aanpassen')">✏️ Aanpassen</button>
+          <button class="jp-btn escalate" onclick="decide(1,'escaleren')">⚠️ Escaleren</button>
+          <button class="jp-btn reject" onclick="decide(1,'weigeren')">❌ Weigeren</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 3 -->
+    <div class="phase-sec" id="ps-handling">
+      <div class="ph-hd ph-hd-handling"><div class="ph-num">3</div>Afhandeling</div>
+      <div class="node" id="n-letter"><span class="ni">✉️</span><span class="nl">Letter Agent</span><span class="ns">Wachtend</span></div>
+      <div class="subs" id="subs-letter">
+        <div class="sub-node" id="n-similar_cases_h"><span class="ni">🗂️</span><span class="nl">Similar Cases Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-summary_h"><span class="ni">📋</span><span class="nl">Summary Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-key_facts_h"><span class="ni">🔑</span><span class="nl">Key Facts Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-legal_research_h"><span class="ni">📚</span><span class="nl">Legal Research Agent</span><span class="ns">—</span></div>
+      </div>
+      <div class="node" id="n-legal_drafting"><span class="ni">📄</span><span class="nl">Legal Drafting Agent</span><span class="ns">Wachtend</span></div>
+      <div class="subs" id="subs-legal_drafting">
+        <div class="sub-node" id="n-similar_cases_ld"><span class="ni">🗂️</span><span class="nl">Similar Cases Agent</span><span class="ns">—</span></div>
+        <div class="sub-node" id="n-legal_analysis_ld"><span class="ni">⚖️</span><span class="nl">Legal Analysis Agent</span><span class="ns">—</span></div>
+      </div>
+      <div class="cp-node" id="cp2"><span class="ni">👤</span><div><div class="nl">Jurist Checkpoint 2</div><div class="ns">Goedkeuring documenten + start traject</div></div></div>
+      <div class="jp" id="jp2">
+        <div class="jp-hd">⚠️ Jurist Actie Vereist — Documenten</div>
+        <div class="jp-sub">Beoordeel de opgestelde brieven en juridische stukken.</div>
+        <div class="jp-sum" id="jpsum2"></div>
+        <div class="fg"><label>Toelichting (optioneel)</label><textarea class="jp-note" id="jpnote2" rows="2" placeholder="Aanwijzingen of toelichting..."></textarea></div>
+        <div class="jp-btns">
+          <button class="jp-btn approve" onclick="decide(2,'goedkeuren')">✅ Goedkeuren &amp; starten</button>
+          <button class="jp-btn adjust" onclick="decide(2,'aanpassen')">✏️ Aanpassen</button>
+          <button class="jp-btn escalate" onclick="decide(2,'escaleren')">⚠️ Escaleren</button>
+          <button class="jp-btn reject" onclick="decide(2,'weigeren')">❌ Afwijzen</button>
+        </div>
+      </div>
+      <div class="node" id="n-uitkomst"><span class="ni">✅</span><span class="nl">Uitkomst voor klant</span><span class="ns">Wachtend</span></div>
+    </div>
+
+    <div class="oc" id="oc">
+      <div class="oc-hd" id="och"></div>
+      <div class="oc-body" id="ocb"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RIGHT: Log -->
+<div class="panel panel-log">
+  <div class="panel-hd">⚡ Agent Output Log</div>
+  <div class="log-c" id="logC">
+    <div class="log-empty">🤖<br>Dien een claim in</div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<script>
+// ── Mock data ──────────────────────────────────────────────────────────────
+const SAMPLES = {
+  arbeidsrecht:{naam:'Piet Janssen',polis:'ARAG-2024-88123',type:'arbeidsrecht',omsch:'Ik ben op staande voet ontslagen wegens diefstal, maar ik heb niets gestolen. Mijn werkgever bij Bouwbedrijf De Vries BV geeft geen enkel bewijs. Ik werk al 8 jaar bij dit bedrijf en heb altijd goed gefunctioneerd.',belang:'45000',weder:'Bouwbedrijf De Vries BV'},
+  huurrecht:{naam:'Maria Garcia',polis:'ARAG-2024-55234',type:'huurrecht',omsch:'Mijn verhuurder weigert de cv-ketel te repareren al 3 maanden. Het is winter en de woning is ijskoud. Ik heb een baby en heb hem meerdere keren gebeld en gemaild zonder reactie.',belang:'8000',weder:'Vastgoed Beheer Utrecht'},
+  consumentenrecht:{naam:'Tom Bakker',polis:'ARAG-2024-71892',type:'consumentenrecht',omsch:'Ik heb een auto gekocht voor €18.500. Na 2 weken rijden staat de auto vast wegens motorschade. De dealer weigert elke aansprakelijkheid.',belang:'18500',weder:'AutoDeal Rotterdam'},
+};
+
+const MOCK = {
+  arbeidsrecht:{
+    transcription:`📝 Transcriptie voltooid — Mijn ARAG digitale intake\n\nOntvangst: maandag 09:42 via Mijn ARAG portaal\nKlant: Piet Janssen | Polis: ARAG-2024-88123\n\nKlantverklaring:\n"Ik werk al 8 jaar bij Bouwbedrijf De Vries BV. Afgelopen vrijdag ben ik op staande voet ontslagen. Mijn leidinggevende beschuldigde mij van het stelen van gereedschap ter waarde van €300. Ik heb dit niet gedaan en er is geen enkel bewijs. Ik heb ook geen ontslagbrief ontvangen."\n\nKanaal: Mijn ARAG (tekst)\nStatus: ✅ Volledig gedocumenteerd`,
+    summary:`**Samenvatting Claim**\n\n**Situatie:** Werknemer (8 jaar in dienst) op staande voet ontslagen wegens beschuldiging diefstal gereedschap (€300). Geen bewijs geleverd door werkgever.\n\n**Kernvraag:** Is het ontslag op staande voet rechtsgeldig zonder bewijs?\n\n**Gewenste uitkomst:** Ontslag aanvechten — herplaatsing of schadevergoeding.\n\n**Tijdlijn:** Ontslag vrijdag, eerste contact ARAG maandag. ⚠️ Aanvechttermijn loopt (max 2 maanden).`,
+    key_facts:`**Juridisch Relevante Sleutelfeiten**\n\n1. [BEWEZEN] Dienstverband: 8 jaar bij Bouwbedrijf De Vries BV\n2. [BEWEZEN] Ontslag verleend op staande voet\n3. [ONBEVESTIGD] Ontslaggrond: beschuldiging diefstal gereedschap €300\n4. [BEWEZEN] Geen bewijs van diefstal verstrekt\n5. [BEWEZEN] Geen formele ontslagbrief ontvangen\n6. [BETWIST] Werkgever stelt klant heeft gestolen\n7. [ONBEVESTIGD] Geen eerdere disciplinaire maatregelen`,
+    completeness:`**Volledigheidscheck**\n\n✓ Naam klant en polisnummer\n✓ Beschrijving ontslaggrond\n✓ Naam werkgever\n✓ Tijdstip ontslag\n\n✗ Kopie arbeidsovereenkomst\n✗ Ontslagbrief / aangetekende brief\n✗ Salarisstrook (transitievergoeding)\n\n**Actie jurist:** Klant verzoeken documenten te uploaden via Mijn ARAG. Behandeling kan alvast starten.`,
+    coverage:`**Coverage Review — Arbeidsrecht**\n\n✅ **GEDEKT**\n\n• Module Arbeidsrecht: ✓ Actief\n• Wachttijd (3 mnd): ✓ Verstreken\n• Uitsluitingen: ✓ Geen van toepassing\n• Strafrecht-component: ✓ Niet aanwezig\n• Max. vergoeding: €250.000\n• Eigen risico: €250\n\nZaak volledig gedekt. Behandeling kan direct starten.`,
+    legal_research:`Relevante wetgeving:\n• Art. 7:677 BW — onverwijld ontslag\n• Art. 7:678 BW — dringende reden, bewijslast bij werkgever\n• Art. 7:681 BW — vernietigbaarheid bij onregelmatig ontslag\n• Art. 7:673 BW — transitievergoeding\nJurisprudentie: HR 12 feb 1999 — beschuldiging zonder bewijs onvoldoende.`,
+    similar_cases:`Vergelijkbare ARAG-zaken:\n\n1. Zaak AW-2022-4471: Ontslag staande voet wegens diefstal, geen camerabeelden. Uitkomst: ontslag nietig verklaard, schikking €28.500.\n\n2. Zaak AW-2023-0892: Bewijs achteraf geleverd. Ontslag in stand gehouden. Les: snel handelen en bewijs inventariseren.`,
+    key_facts_refined:`Juridisch geprioriteerde feiten:\n\n⭐ Geen bewijs diefstal → zwakke positie werkgever\n⭐ 8 jaar dienstverband → hoge transitievergoeding\n⭐ Geen formele ontslagbrief → procedurele fout werkgever\n⚡ Termijn aanvechting: 2 maanden (dringend!)`,
+    next_best_action:`Aanbevolen acties:\n\n1. ✅ Bezwaarbrief + schikkingspoging\n   Kans: 68% | Tijdlijn: 6-8 weken\n\n2. ⚖️ Kantonrechter\n   Kans: 72% | Tijdlijn: 6-9 maanden\n\n3. 🤝 Mediation\n   Kans: 55% | Tijdlijn: 4-6 weken\n\nAanbeveling: start met actie 1.`,
+    legal_analysis:`**Juridische Analyse — Ontslag op Staande Voet**\n\n**Kwalificatie:** Potentieel onregelmatig ontslag op staande voet (art. 7:677 jo. 7:678 BW)\n\n**Analyse:** Werkgever heeft geen aantoonbaar bewijs van diefstal. De bewijslast ligt bij de werkgever (art. 7:678 BW). Zonder bewijs is de dringende reden niet vast te stellen. Geen formele ontslagbrief versterkt onze positie.\n\n**Slagingskans: 72%** 🟢\n\n**Sterke punten:**\n- Geen bewijs → ontslag mogelijk nietig\n- 8 jaar dienstverband → hoge vergoeding\n- Procedurele fouten werkgever\n\n**Risico's:** Werkgever kan alsnog bewijs aanleveren\n\n**Aanbeveling:** Buitengerechtelijk starten met bezwaarbrief.`,
+    similar_cases_h:`Precedent brieven: In zaak AW-2022-4471 leidde een krachtige bezwaarbrief met eis tot rectificatie tot schikking binnen 3 weken.`,
+    summary_h:`Brief-context: Klant ontslagen zonder bewijs na 8 jaar trouwe dienst. ARAG treedt op namens klant. Werkgever heeft zwakke juridische positie.`,
+    key_facts_h:`Feiten voor brief:\n• 8 jaar dienstverband\n• Ontslag zonder bewijs\n• Geen formele ontslagbrief\n• Eis: intrekking of schikking`,
+    legal_research_h:`Juridische grondslag brief: Art. 7:677-678 BW (onverwijld + dringende reden). Sommatie o.b.v. art. 7:681 BW.`,
+    letter:`**Brief 1 — Ontvangstbevestiging aan klant**\n\nGeachte heer Janssen,\n\nHierbij bevestigen wij de ontvangst van uw claim inzake uw ontslag op staande voet bij Bouwbedrijf De Vries BV. Dossiernummer: ARG-2024-88123-AW.\n\nNa analyse concluderen wij dat uw positie juridisch sterk is. De beschuldiging van diefstal zonder bewijs maakt uw ontslag aanvechtbaar.\n\nOnze aanpak:\n→ Week 1: Bezwaarbrief aan werkgever\n→ Week 2–3: Schikkingsonderhandelingen\n→ Zo nodig: kantonrechter\n\nMet vriendelijke groet, ARAG Rechtsbijstand\n\n---\n\n**Brief 2 — Aanschrijving Bouwbedrijf De Vries BV**\n\nGeachte heer/mevrouw,\n\nWij treden op als juridisch adviseur van de heer P. Janssen. Het door u verleende ontslag op staande voet is juridisch onhoudbaar wegens het ontbreken van een aantoonbare dringende reden (art. 7:678 BW).\n\nWij sommeren u binnen 14 dagen:\n1. Het ontslag in te trekken en betrokkene te herplaatsen, óf\n2. Een minnelijke schikking voor te stellen\n\nBij uitblijven initiëren wij procedure bij de kantonrechter.\n\nHoogachtend, ARAG Rechtsbijstand`,
+    similar_cases_ld:`Precedent processtukken: Verzoekschrift AW-2022-4471 succesvol — focus op ontbreken bewijs en procedurele fouten werkgever.`,
+    legal_analysis_ld:`Juridische grondslag processtuk: Nietigverklaring ontslag (art. 7:681 BW) + transitievergoeding (art. 7:673 BW) + billijke vergoeding bij ernstig verwijtbaar handelen werkgever.`,
+    legal_drafting:`**Conceptverzoekschrift — Kantonrechter**\n\nAan de kantonrechter\n\nVerzoeker: P. Janssen\nVerweerder: Bouwbedrijf De Vries BV\n\n**Inleiding**\nVerzoeker is op staande voet ontslagen zonder dat sprake is van een dringende reden (art. 7:678 BW). Verweerder heeft geen enkel bewijs geleverd voor de beschuldiging van diefstal.\n\n**Grondslag**\nHet ontslag dient nietig te worden verklaard (art. 7:681 BW) dan wel verzoeker heeft recht op billijke vergoeding.\n\n**Verzoek**\n1. Primair: verklaring voor recht dat ontslag nietig is\n2. Transitievergoeding op grond van art. 7:673 BW\n3. Billijke vergoeding wegens ernstig verwijtbaar handelen\n\nNamens verzoeker, ARAG Rechtsbijstand`,
+  },
+  huurrecht:{
+    transcription:`📝 Transcriptie voltooid — Mijn ARAG digitale intake\n\nOntvangst: dinsdag 14:15 via Mijn ARAG portaal\nKlant: Maria Garcia | Polis: ARAG-2024-55234\n\nKlantverklaring:\n"Mijn cv-ketel is al 3 maanden kapot. Verhuurder Vastgoed Beheer Utrecht reageert niet — niet op telefoon, niet op e-mail. Het is winter en de woning is ijskoud. Ik heb jonge kinderen."\n\nKanaal: Mijn ARAG (tekst)\nStatus: ✅ Volledig gedocumenteerd`,
+    summary:`**Samenvatting Claim**\n\n**Situatie:** Huurder ervaart al 3 maanden defecte cv-ketel. Verhuurder reageert niet op verzoeken. Winterperiode maakt de situatie acuut.\n\n**Kernvraag:** Kan verhuurder verplicht worden tot herstel?\n\n**Gewenste uitkomst:** Onmiddellijk herstel + schadevergoeding.\n\n**Tijdlijn:** Gebrek gemeld 3 maanden geleden. ⚠️ Spoedsituatie.`,
+    key_facts:`**Sleutelfeiten**\n\n1. [BEWEZEN] Huurovereenkomst actief\n2. [BEWEZEN] Cv-ketel defect 3 maanden\n3. [BEWEZEN] Verhuurder meerdere keren aangesproken\n4. [BEWEZEN] Geen reactie verhuurder\n5. [BEWEZEN] Winterperiode — directe impact bewoonbaarheid\n6. [BEWEZEN] Gezin met jonge kinderen`,
+    completeness:`**Volledigheidscheck**\n\n✓ Naam klant + polisnummer\n✓ Omschrijving gebrek\n✓ Naam verhuurder\n✓ Duur probleem\n\n✗ Huurovereenkomst\n✗ Schriftelijke meldingen\n✗ Huurprijsgegevens\n\n**Actie jurist:** Spoed — huurovereenkomst + correspondentie opvragen.`,
+    coverage:`**Coverage Review — Huurrecht**\n\n✅ **GEDEKT**\n\n• Module Huurrecht: ✓ Actief\n• Wachttijd: ✓ Verstreken\n• Uitsluitingen: ✓ Geen\n• Max. vergoeding: €250.000\n\nSpoedsituatie erkend. Behandeling direct starten.`,
+    legal_research:`Relevante wetgeving:\n• Art. 7:204 BW — definitie gebrek\n• Art. 7:206 BW — herstelplicht verhuurder\n• Art. 7:207 BW — huurprijsvermindering bij gebreken\n• Art. 7:208 BW — schadevergoeding\nJurisprudentie: Hof Amsterdam 2021 — verhuurder aansprakelijk bij 3+ maanden verzuim.`,
+    similar_cases:`Vergelijkbare zaken:\n\n1. HR-2022-1134: Verhuurder weigerde cv-herstel 2 maanden. Huurcommissie: 35% huurverlaging + schadevergoeding €800.\n\n2. HR-2023-0556: Kort geding winter. Rechter: herstelplicht binnen 48 uur + dwangsom €500/dag.`,
+    key_facts_refined:`Prioritaire feiten:\n\n⭐ 3 maanden aantoonbaar verzuim → structureel\n⭐ Winterperiode → spoedeisend belang aanwezig\n⭐ Gedocumenteerde contactpogingen\n⚡ Spoed: jonge kinderen, onbewoonbaar`,
+    next_best_action:`Aanbevolen acties:\n\n1. ✅ Ingebrekestelling + Huurcommissie\n   Kans: 85% | Tijdlijn: 3-6 weken\n\n2. ⚖️ Kort geding (spoed)\n   Kans: 80% | Tijdlijn: 1-2 weken\n\n3. 🤝 Direct contact verhuurder via ARAG\n   Kans: 60% | Tijdlijn: 1 week\n\nAanbeveling: actie 1 + 3 parallel.`,
+    legal_analysis:`**Juridische Analyse — Gebrekkige Huurwoning**\n\n**Kwalificatie:** Tekortkoming onderhoudsplicht verhuurder (art. 7:204 jo. 7:206 BW)\n\n**Analyse:** Verhuurder verplicht woning in goede staat te onderhouden. Defecte cv-ketel in winter = ernstig gebrek. Drie maanden non-respons = structureel verzuim.\n\n**Slagingskans: 85%** 🟢\n\n**Rechtsmiddelen:**\n- Huurverlaging via Huurcommissie (art. 7:207 BW)\n- Schadevergoeding stookkosten\n- Kort geding voor onmiddellijk herstel\n\n**Aanbeveling:** Ingebrekestelling + Huurcommissie parallel starten.`,
+    similar_cases_h:`Precedent: Ingebrekestelling met 7-daagse termijn in HR-2022-1134 bleek effectief. Verhuurder reageerde alsnog na brief van ARAG.`,
+    summary_h:`Brief-context: Verhuurder 3 maanden in verzuim. Spoedsituatie (winter, gezin). ARAG sommeert tot onmiddellijk herstel.`,
+    key_facts_h:`Feiten voor brief:\n• Cv-ketel defect 3 maanden\n• Verhuurder niet gereageerd\n• Winterperiode/gezin\n• Eis: herstel binnen 7 dagen`,
+    legal_research_h:`Juridische grondslag: Art. 7:206 BW (herstelplicht). Bij niet-nakoming: art. 7:207 (huurverlaging) + art. 7:208 (schadevergoeding).`,
+    letter:`**Brief 1 — Ontvangstbevestiging aan klant**\n\nGeachte mevrouw Garcia,\n\nWij bevestigen ontvangst van uw claim inzake de defecte cv-ketel. Dossiernummer: ARG-2024-55234-HR. Wij behandelen uw zaak met prioriteit.\n\nMet vriendelijke groet, ARAG Rechtsbijstand\n\n---\n\n**Brief 2 — Ingebrekestelling Vastgoed Beheer Utrecht**\n\nGeachte heer/mevrouw,\n\nNamens uw huurder mevrouw M. Garcia stellen wij vast dat u ernstig tekortschiet in uw wettelijke onderhoudsplicht (art. 7:206 BW). De cv-ketel is al 3 maanden defect ondanks herhaalde verzoeken.\n\nWij sommeren u de cv-ketel binnen 7 dagen volledig te herstellen of vervangen. Bij niet-nakoming vorderen wij:\n• Huurprijsvermindering (art. 7:207 BW)\n• Schadevergoeding\n• Kort geding\n\nHoogachtend, ARAG Rechtsbijstand`,
+    similar_cases_ld:`Precedent processtuk: Kort geding HR-2022-1134 — spoedeisend belang goed onderbouwen: winterperiode + jonge kinderen = directe gezondheidsschade.`,
+    legal_analysis_ld:`Grondslag kort geding: Spoedeisend belang (onbewoonbaarheid). Vordering: herstelgebod op straffe van dwangsom €500/dag. Grondslag: art. 7:206 BW.`,
+    legal_drafting:`**Conceptverzoekschrift Kort Geding**\n\nEiseres: M. Garcia, huurder\nGedaagde: Vastgoed Beheer Utrecht\n\n**Spoedeisend belang**\nDe cv-ketel van eiseres is al 3 maanden defect. Bij wintertemperaturen is de woning onbewoonbaar voor een gezin met jonge kinderen.\n\n**Vordering**\n1. Veroordeling gedaagde tot herstel cv-ketel binnen 48 uur\n2. Dwangsom: €500 per dag bij niet-nakoming\n3. Schadevergoeding: €[bedrag] extra stookkosten\n\nGrondslag: art. 7:206 BW\n\nNamens eiseres, ARAG Rechtsbijstand`,
+  },
+  consumentenrecht:{
+    transcription:`📝 Transcriptie voltooid — Mijn ARAG digitale intake\n\nOntvangst: woensdag 11:03 via Mijn ARAG portaal\nKlant: Tom Bakker | Polis: ARAG-2024-71892\n\nKlantverklaring:\n"Ik heb 3 weken geleden een auto gekocht bij AutoDeal Rotterdam voor €18.500. Na 2 weken rijden staat hij ineens stil — motorschade. De dealer zegt dat ik het zelf veroorzaakt heb. Dat is onzin."\n\nKanaal: Mijn ARAG (tekst)\nStatus: ✅ Volledig gedocumenteerd`,
+    summary:`**Samenvatting Claim**\n\n**Situatie:** Auto gekocht voor €18.500, na 2 weken motorschade. Dealer ontkent aansprakelijkheid.\n\n**Kernvraag:** Is dealer aansprakelijk op grond van non-conformiteit?\n\n**Gewenste uitkomst:** Gratis herstel of terugbetaling €18.500.\n\n**Tijdlijn:** Aankoop 3 weken geleden. Wettelijk vermoeden non-conformiteit actief (<6 maanden).`,
+    key_facts:`**Sleutelfeiten**\n\n1. [BEWEZEN] Aankoop auto €18.500 bij AutoDeal Rotterdam\n2. [BEWEZEN] Aankoopdatum: 3 weken geleden\n3. [BEWEZEN] Motorschade na 2 weken gebruik\n4. [BETWIST] Dealer stelt klant verantwoordelijk\n5. [BEWEZEN] Klant ontkent eigen schuld\n6. [BEWEZEN] Defect binnen 6 maanden → art. 7:18a BW actief`,
+    completeness:`**Volledigheidscheck**\n\n✓ Naam klant + polisnummer\n✓ Aankoopdatum + prijs\n✓ Naam dealer\n✓ Beschrijving defect\n\n✗ Koopovereenkomst / factuur\n✗ Technisch rapport motorschade\n✗ Correspondentie met dealer\n\n**Actie jurist:** Technisch rapport is essentieel. Klant vandaag nog verzoeken.`,
+    coverage:`**Coverage Review — Consumentenrecht**\n\n✅ **GEDEKT**\n\n• Module Consumentenrecht: ✓ Actief\n• Wachttijd: ✓ Verstreken\n• Uitsluitingen: ✓ Geen\n• Max. vergoeding: €250.000\n\nZaak volledig gedekt. Behandeling kan starten.`,
+    legal_research:`Relevante wetgeving:\n• Art. 7:17 BW — non-conformiteit\n• Art. 7:18a BW — wettelijk vermoeden bij defect <6 maanden\n• Art. 7:21 BW — herstel/vervanging\n• Art. 7:22 BW — ontbinding of prijsvermindering\nEU Richtlijn 2019/771 — consumentenkoop.`,
+    similar_cases:`Vergelijkbare zaken:\n\n1. CR-2022-3301: Auto motorschade na 3 weken. Dealer aansprakelijk. Terugbetaling €15.200.\n\n2. CR-2023-2148: Dealer leverde technisch rapport. Klant deels eigen schuld. Les: eigen rapport essentieel.`,
+    key_facts_refined:`Prioritaire feiten:\n\n⭐ Defect na 2 weken → art. 7:18a BW vermoeden actief\n⭐ Dealer ontkent aansprakelijkheid → sommatie vereist\n⭐ Aankoopprijs €18.500 → significant belang\n⚡ Technisch rapport opdracht geven (urgent)`,
+    next_best_action:`Aanbevolen acties:\n\n1. ✅ Technisch rapport + ingebrekestelling\n   Kans: 80% | Tijdlijn: 2-4 weken\n\n2. ⚖️ Geschillencommissie Voertuigen\n   Kans: 78% | Tijdlijn: 6-10 weken\n\n3. 📋 Rechtbank dagvaarding\n   Kans: 75% | Tijdlijn: 6-12 maanden`,
+    legal_analysis:`**Juridische Analyse — Non-conformiteit Voertuig**\n\n**Kwalificatie:** Non-conformiteit bij consumentenkoop (art. 7:17 BW)\n\n**Analyse:** Motorschade na 2 weken activeert wettelijk vermoeden non-conformiteit (art. 7:18a BW). Dealer moet tegendeel bewijzen.\n\n**Slagingskans: 80%** 🟢\n\n**Rechtsmiddelen:**\n- Kosteloos herstel of vervanging (art. 7:21 BW)\n- Ontbinding + terugbetaling €18.500 (art. 7:22 BW)\n\n**Risico's:** Technisch rapport dealer kan andere oorzaak aanwijzen.\n\n**Aanbeveling:** Eigen technisch rapport + ingebrekestelling dealer.`,
+    similar_cases_h:`Precedent: In CR-2022-3301 leidde sommatie met 14-daagse termijn direct tot schikkingsaanbod dealer.`,
+    summary_h:`Brief-context: Dealer aansprakelijk voor non-conforme auto €18.500. Wettelijk vermoeden art. 7:18a in voordeel klant.`,
+    key_facts_h:`Feiten voor brief:\n• Aankoop €18.500, defect na 2 weken\n• Art. 7:18a BW vermoeden actief\n• Dealer ontkent aansprakelijkheid\n• Eis: herstel of terugbetaling`,
+    legal_research_h:`Juridische grondslag: Art. 7:17 + 7:18a BW (non-conformiteit + vermoeden). Primaire eis: art. 7:21 BW (herstel). Subsidiair: art. 7:22 BW (ontbinding).`,
+    letter:`**Brief 1 — Ontvangstbevestiging aan klant**\n\nGeachte heer Bakker,\n\nWij bevestigen ontvangst van uw claim inzake de non-conforme auto. Dossiernummer: ARG-2024-71892-CR. Uw rechtspositie is sterk — het wettelijk vermoeden van art. 7:18a BW werkt in uw voordeel.\n\nMet vriendelijke groet, ARAG Rechtsbijstand\n\n---\n\n**Brief 2 — Ingebrekestelling AutoDeal Rotterdam**\n\nGeachte heer/mevrouw,\n\nNamens de heer T. Bakker stellen wij vast dat het door u geleverde voertuig niet beantwoordt aan de koopovereenkomst (art. 7:17 BW). Het motordefect na 2 weken gebruik activeert het wettelijk vermoeden van art. 7:18a BW.\n\nWij vorderen binnen 14 dagen: kosteloos herstel of vervanging. Bij weigering eisen wij ontbinding + terugbetaling €18.500 (art. 7:22 BW).\n\nHoogachtend, ARAG Rechtsbijstand`,
+    similar_cases_ld:`Precedent dagvaarding: CR-2022-3301 — art. 7:18a vermoeden kon door dealer niet worden weerlegd. Volledige terugbetaling toegewezen.`,
+    legal_analysis_ld:`Grondslag dagvaarding: Non-conformiteit art. 7:17 BW. Primair: herstel (art. 7:21). Subsidiair: ontbinding + terugbetaling €18.500 (art. 7:22). Vermoeden art. 7:18a in voordeel eiser.`,
+    legal_drafting:`**Conceptdagvaarding**\n\nEiser: T. Bakker\nGedaagde: AutoDeal Rotterdam BV\n\n**Feiten**\nEiser kocht een auto voor €18.500. Na 2 weken gebruik trad motorschade op. Op grond van art. 7:18a BW geldt het vermoeden van non-conformiteit.\n\n**Juridische grondslag**\nDe geleverde zaak beantwoordt niet aan de koopovereenkomst (art. 7:17 BW).\n\n**Vorderingen**\n1. Primair: kosteloos herstel of vervanging (art. 7:21 BW)\n2. Subsidiair: ontbinding + terugbetaling €18.500 (art. 7:22 BW)\n3. Buitengerechtelijke kosten\n\nNamens eiser, ARAG Rechtsbijstand`,
+  }
+};
+
+// ── Flow sequence ──────────────────────────────────────────────────────────
+const FLOW = [
+  {phase:'intake',agents:[
+    {id:'transcription',icon:'📝',label:'Transcription Agent'},
+    {id:'summary',icon:'📋',label:'Summary Agent'},
+    {id:'key_facts',icon:'🔑',label:'Key Facts Agent'},
+    {id:'completeness',icon:'☑️',label:'Completeness Check Agent'},
+    {id:'coverage',icon:'🔍',label:'Coverage Review Agent'},
+  ]},
+  {phase:'assessment',agents:[
+    {id:'legal_analysis',icon:'⚖️',label:'Legal Analysis Agent',subs:[
+      {id:'legal_research',icon:'📚',label:'Legal Research Agent'},
+      {id:'similar_cases',icon:'🗂️',label:'Similar Cases Agent'},
+      {id:'key_facts_refined',icon:'🔑',label:'Key Facts Agent (verfijning)'},
+      {id:'next_best_action',icon:'🎯',label:'Next Best Action Agent'},
+    ]},
+  ]},
+  {phase:'handling',agents:[
+    {id:'letter',icon:'✉️',label:'Letter Agent',subs:[
+      {id:'similar_cases_h',icon:'🗂️',label:'Similar Cases Agent'},
+      {id:'summary_h',icon:'📋',label:'Summary Agent'},
+      {id:'key_facts_h',icon:'🔑',label:'Key Facts Agent'},
+      {id:'legal_research_h',icon:'📚',label:'Legal Research Agent'},
+    ]},
+    {id:'legal_drafting',icon:'📄',label:'Legal Drafting Agent',subs:[
+      {id:'similar_cases_ld',icon:'🗂️',label:'Similar Cases Agent'},
+      {id:'legal_analysis_ld',icon:'⚖️',label:'Legal Analysis Agent'},
+    ]},
+  ]},
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let running=false, claimType='arbeidsrecht', agentsDone=0;
+let timerInt=null, startTime=null;
+let pausedResolve=null;
+const logTexts={};
+
+function loadSample(t){
+  const s=SAMPLES[t];
+  if(!s)return;
+  document.getElementById('fnaam').value=s.naam;
+  document.getElementById('fpolis').value=s.polis;
+  document.getElementById('ftype').value=s.type;
+  document.getElementById('fomsch').value=s.omsch;
+  document.getElementById('fbelang').value=s.belang;
+  document.getElementById('fweder').value=s.weder;
+}
+
+// ── Node state ─────────────────────────────────────────────────────────────
+function setNode(id,state,ns){
+  const el=document.getElementById('n-'+id);
+  if(!el)return;
+  el.className=(el.classList.contains('sub-node')?'sub-node show ':''+'node ')+state;
+  const nsEl=el.querySelector('.ns');
+  if(nsEl&&ns)nsEl.textContent=ns;
+}
+function showSub(id){const el=document.getElementById('n-'+id);if(el)el.classList.add('show')}
+function setCP(n,cls){const el=document.getElementById('cp'+n);if(el)el.className='cp-node '+cls}
+function setPhTab(ph,cls){const el=document.getElementById('pht-'+ph);if(el)el.className='ph-tab '+cls}
+function setProgress(pct){
+  document.getElementById('pFill').style.width=pct+'%';
+  document.getElementById('pPct').textContent=Math.round(pct)+'%';
+}
+function incAgent(){
+  agentsDone++;
+  document.getElementById('agentCtr').textContent=agentsDone+' / 11 agents';
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function logC(){
+  const c=document.getElementById('logC');
+  const e=c.querySelector('.log-empty');if(e)e.remove();
+  return c;
+}
+function logPhase(ph){
+  const labels={intake:'── Fase 1: Intake ──',assessment:'── Fase 2: Beoordeling ──',handling:'── Fase 3: Afhandeling ──'};
+  const d=document.createElement('div');
+  d.className='log-ph '+ph;d.textContent=labels[ph]||ph;
+  logC().appendChild(d);
+}
+function logStart(id,label,icon,isSub){
+  const c=logC();
+  const e=document.createElement('div');e.className='log-e';e.id='le-'+id;
+  const ts=new Date().toLocaleTimeString('nl-NL');
+  const col='cn-'+id.replace(/_h$/,'').replace(/_ld$/,'').replace(/_refined$/,'');
+  const pre=isSub?'<span class="log-sub-pfx">↳</span>':'';
+  e.innerHTML=`<div class="log-eh">${pre}<span class="log-nm ${col}">${icon} ${label}</span><span class="log-ts">${ts}</span></div><div class="log-bd${isSub?' sub':''}" id="lb-${id}"><span class="cursor"></span></div>`;
+  c.appendChild(e);logTexts[id]='';scrollLog();
+}
+function logAppend(id,text){
+  logTexts[id]=(logTexts[id]||'')+text;
+  const el=document.getElementById('lb-'+id);
+  if(el){el.innerHTML=esc(logTexts[id])+'<span class="cursor"></span>';scrollLog();}
+}
+function logFinalize(id){
+  const el=document.getElementById('lb-'+id);
+  if(el)el.innerHTML=esc(logTexts[id]||'');
+}
+function scrollLog(){const c=document.getElementById('logC');c.scrollTop=c.scrollHeight;}
+function esc(t){return(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
+// ── Streaming simulation ───────────────────────────────────────────────────
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+
+async function streamText(id,text,chunkSize=2,delayMs=12){
+  for(let i=0;i<text.length;i+=chunkSize){
+    logAppend(id,text.slice(i,i+chunkSize));
+    await delay(delayMs);
+  }
+}
+
+async function runAgent(id,isSub=false){
+  const mock=MOCK[claimType]||MOCK.arbeidsrecht;
+  const text=mock[id]||`[${id}] analyse voltooid.`;
+  if(!isSub){
+    setNode(id,'node-active','⏳ Bezig…');
+  } else {
+    showSub(id);
+    setNode(id,'sub-node show node-active','⏳');
+  }
+  logStart(id,id,isSub?'↳':'',isSub);
+  await streamText(id,text);
+  logFinalize(id);
+  if(!isSub){
+    setNode(id,'node-done','✓ Voltooid');
+    incAgent();
+  } else {
+    setNode(id,'sub-node show node-done','✓');
+    incAgent();
+  }
+}
+
+// ── Jurist checkpoint ──────────────────────────────────────────────────────
+function showJP(n,sumKeys){
+  const mock=MOCK[claimType]||MOCK.arbeidsrecht;
+  setCP(n,'cp-active');
+  const sumEl=document.getElementById('jpsum'+n);
+  const labels={completeness:'☑️ Completeness',coverage:'🔍 Coverage',legal_analysis:'⚖️ Legal Analysis',letter:'✉️ Letter Agent',legal_drafting:'📄 Legal Drafting'};
+  sumEl.innerHTML=sumKeys.map(k=>`<div class="jp-al">${labels[k]||k}</div><div>${esc((mock[k]||'').slice(0,250)+'…')}</div>`).join('');
+  document.getElementById('jp'+n).classList.add('show');
+  document.getElementById('jp'+n).scrollIntoView({behavior:'smooth',block:'nearest'});
+  return new Promise(r=>{pausedResolve=r});
+}
+
+async function decide(n,dec){
+  if(!pausedResolve)return;
+  const note=document.getElementById('jpnote'+n).value;
+  document.getElementById('jp'+n).querySelectorAll('.jp-btn').forEach(b=>b.disabled=true);
+  document.getElementById('jp'+n).classList.remove('show');
+  setCP(n,dec==='weigeren'?'cp-error':'cp-done');
+  logStart('sys_cp'+n,'Jurist Checkpoint '+n,'👤',false);
+  const lbl={goedkeuren:'✅ Goedgekeurd',aanpassen:'✏️ Aangepast (feedback gegeven)',escaleren:'⚠️ Geëscaleerd',weigeren:'❌ Geweigerd'};
+  logAppend('sys_cp'+n,`Beslissing: ${lbl[dec]||dec}${note?'\nNotitie: '+note:''}`);
+  logFinalize('sys_cp'+n);
+  const res=pausedResolve;pausedResolve=null;
+  res(dec);
+}
+
+// ── Main flow ──────────────────────────────────────────────────────────────
+async function runFlow(){
+  setPhTab('intake','active');setProgress(5);
+  logPhase('intake');
+
+  // Phase 1
+  for(const ag of FLOW[0].agents){await runAgent(ag.id,false);await delay(200);}
+  setPhTab('intake','done');setProgress(38);
+
+  // Phase 2
+  setPhTab('assessment','active');
+  logPhase('assessment');
+  const la=FLOW[1].agents[0];
+  for(const sub of la.subs){await runAgent(sub.id,true);await delay(150);}
+  await runAgent(la.id,false);await delay(200);
+  setProgress(60);
+
+  // Jurist CP 1
+  const d1=await showJP(1,['completeness','coverage','legal_analysis']);
+  setPhTab('assessment','done');
+  if(d1==='weigeren'){
+    setNode('uitkomst','node-done','Geweigerd');
+    showOutcome('weigeren','Claim Geweigerd','Jurist heeft de claim geweigerd na beoordeling van de juridische analyse.','N.v.t.',[]);
+    finish();return;
+  }
+  setProgress(70);
+
+  // Phase 3
+  setPhTab('handling','active');
+  logPhase('handling');
+  const le=FLOW[2].agents[0];
+  for(const sub of le.subs){await runAgent(sub.id,true);await delay(150);}
+  await runAgent(le.id,false);await delay(200);
+
+  const ld=FLOW[2].agents[1];
+  for(const sub of ld.subs){await runAgent(sub.id,true);await delay(150);}
+  await runAgent(ld.id,false);await delay(200);
+  setProgress(90);
+
+  // Jurist CP 2
+  const d2=await showJP(2,['letter','legal_drafting']);
+  setPhTab('handling','done');
+
+  const statusMap={goedkeuren:'Claim Goedgekeurd & Gestart',aanpassen:'Claim Aangepast & Gestart',escaleren:'Claim Geëscaleerd',weigeren:'Claim Afgewezen'};
+  const typeMap={goedkeuren:'ok',aanpassen:'warn',escaleren:'warn',weigeren:'err'};
+  setNode('uitkomst','node-done','✓ Uitkomst beschikbaar');
+  showOutcome(typeMap[d2]||'ok',statusMap[d2]||'Voltooid',
+    d2==='weigeren'?'Jurist heeft de documenten afgewezen.':'Alle agents hebben hun werk gedaan. Dossier is aangemaakt en behandeling gestart.',
+    d2==='weigeren'?'N.v.t.':'6–8 weken (buitengerechtelijk)',
+    d2==='weigeren'?['Klant informeren over afwijzing']:['Brieven versturen aan klant en wederpartij','Dossier aanmaken in claimsysteem','Behandelend jurist toewijzen','Buitengerechtelijk traject starten']
+  );
+  setProgress(100);
+  finish();
+}
+
+function showOutcome(type,title,desc,timeline,steps){
+  const oc=document.getElementById('oc');
+  document.getElementById('och').className='oc-hd '+type;
+  const emoji={ok:'✅',warn:'⚠️',err:'❌'};
+  document.getElementById('och').textContent=emoji[type]+' '+title;
+  document.getElementById('ocb').innerHTML=`<p>${esc(desc)}</p>${timeline?`<p><strong>Tijdlijn:</strong> ${esc(timeline)}</p>`:''}`+(steps.length?`<p><strong>Volgende stappen:</strong></p><ul>${steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:'');
+  oc.classList.add('show');
+  oc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function finish(){
+  running=false;
+  document.getElementById('goBtn').disabled=false;
+  document.getElementById('goBtn').textContent='🚀 Nieuwe Claim Indienen';
+  if(timerInt){clearInterval(timerInt);timerInt=null;}
+}
+
+// ── Form ───────────────────────────────────────────────────────────────────
+function resetUI(){
+  // Nodes
+  ['transcription','summary','key_facts','completeness','coverage','legal_analysis','letter','legal_drafting','uitkomst'].forEach(id=>{
+    const el=document.getElementById('n-'+id);
+    if(el){el.className='node';const ns=el.querySelector('.ns');if(ns)ns.textContent='Wachtend';}
+  });
+  ['legal_research','similar_cases','key_facts_refined','next_best_action','similar_cases_h','summary_h','key_facts_h','legal_research_h','similar_cases_ld','legal_analysis_ld'].forEach(id=>{
+    const el=document.getElementById('n-'+id);
+    if(el){el.className='sub-node';const ns=el.querySelector('.ns');if(ns)ns.textContent='—';}
+  });
+  [1,2].forEach(n=>{
+    setCP(n,'');
+    const jp=document.getElementById('jp'+n);if(jp){jp.classList.remove('show');jp.querySelectorAll('.jp-btn').forEach(b=>b.disabled=false);}
+    const note=document.getElementById('jpnote'+n);if(note)note.value='';
+  });
+  document.getElementById('oc').classList.remove('show');
+  ['intake','assessment','handling'].forEach(p=>setPhTab(p,''));
+  setProgress(0);agentsDone=0;
+  document.getElementById('agentCtr').textContent='0 / 11 agents';
+  document.getElementById('logC').innerHTML='<div class="log-empty">🤖<br>Verbinding maken…</div>';
+}
+
+document.getElementById('claimForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(running)return;
+  running=true;
+  claimType=document.getElementById('ftype').value||'arbeidsrecht';
+  resetUI();
+  const btn=document.getElementById('goBtn');
+  btn.disabled=true;btn.textContent='⏳ Flow gestart…';
+  startTime=Date.now();
+  timerInt=setInterval(()=>{
+    const s=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('elapsed').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  },1000);
+  await runFlow();
+});
+</script>
+</body>
+</html>
