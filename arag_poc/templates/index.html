@@ -1,264 +1,176 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARAG — Agentic Claimsflow PoC</title>
-  <link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARAG Agentic Claimsflow | PoC</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-
-<header>
-  <div class="logo">
-    <div class="logo-text">ARAG</div>
-    <div class="logo-divider"></div>
-    <div class="logo-sub">
-      <strong>Agentic Claimsflow</strong>
-      Proof of Concept · Digital Innovation &amp; AI
-    </div>
-  </div>
-  <div class="header-right">
-    {% if api_mode == "live" %}
-      <span class="mode-badge live">🟢 Live API</span>
-    {% else %}
-      <span class="mode-badge mock">⚡ Demo Mode</span>
-    {% endif %}
-    <span class="date-badge">Juni 2026</span>
-  </div>
-</header>
-
-<div class="main-grid">
-
-  <!-- LEFT: Claim intake form -->
-  <div class="panel" id="form-panel">
-    <div class="panel-header">📥 Claim Indienen</div>
-    <div class="panel-body">
-      <form id="claim-form">
-        <div class="form-group">
-          <label>Naam klant</label>
-          <input type="text" id="naam" placeholder="Jan de Vries" required>
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="logo-area">
+                <span class="logo-text">ARAG</span>
+                <div class="header-titles">
+                    <h1>Agentic Claimsflow</h1>
+                    <span class="poc-badge">Proof of Concept</span>
+                </div>
+            </div>
+            <div class="header-meta">
+                <span class="date-badge">{{ date }}</span>
+                <span class="mock-badge" id="modeBadge">Demo Mode</span>
+            </div>
         </div>
-        <div class="form-group">
-          <label>Polisnummer</label>
-          <input type="text" id="polisnummer" placeholder="ARAG-2024-12345" required>
-        </div>
-        <div class="form-group">
-          <label>Type claim</label>
-          <select id="claim_type" required>
-            <option value="Arbeidsrecht">Arbeidsrecht</option>
-            <option value="Huurrecht">Huurrecht</option>
-            <option value="Familierecht">Familierecht</option>
-            <option value="Consumentenrecht">Consumentenrecht</option>
-            <option value="Verkeersrecht">Verkeersrecht</option>
-            <option value="Burenrecht">Burenrecht</option>
-            <option value="Contractrecht">Contractrecht</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Omschrijving situatie</label>
-          <textarea id="omschrijving" rows="4" placeholder="Beschrijf de situatie..." required></textarea>
-        </div>
-        <div class="form-group">
-          <label>Geschat financieel belang</label>
-          <input type="text" id="belang" placeholder="€ 15.000">
-        </div>
-        <div class="form-group">
-          <label>Wederpartij</label>
-          <input type="text" id="wederpartij" placeholder="Naam bedrijf of persoon">
-        </div>
-        <button type="submit" class="btn btn-primary" id="submit-btn">
-          🚀 Claim Indienen
-        </button>
-      </form>
+    </header>
 
-      <div class="divider"><span>— of laad voorbeeldclaim —</span></div>
+    <main class="app-main">
+        <!-- LEFT: Claim Form -->
+        <section class="panel panel-form">
+            <h2 class="panel-title">Claim Indienen</h2>
+            <form id="claimForm">
+                <div class="form-group">
+                    <label>Naam klant</label>
+                    <input type="text" id="naam" name="naam" placeholder="Jan de Vries" required>
+                </div>
+                <div class="form-group">
+                    <label>Polisnummer</label>
+                    <input type="text" id="polisnummer" name="polisnummer" placeholder="ARAG-2024-12345" required>
+                </div>
+                <div class="form-group">
+                    <label>Type claim</label>
+                    <select id="type_claim" name="type_claim" required>
+                        <option value="">— Selecteer type —</option>
+                        <option value="arbeidsrecht">Arbeidsrecht</option>
+                        <option value="huurrecht">Huurrecht</option>
+                        <option value="familierecht">Familierecht</option>
+                        <option value="consumentenrecht">Consumentenrecht</option>
+                        <option value="verkeersrecht">Verkeersrecht</option>
+                        <option value="burenrecht">Burenrecht</option>
+                        <option value="contractrecht">Contractrecht</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Omschrijving</label>
+                    <textarea id="omschrijving" name="omschrijving" rows="4" placeholder="Beschrijf uw situatie..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Geschat financieel belang</label>
+                    <input type="text" id="belang" name="belang" placeholder="€ ..." required>
+                </div>
+                <div class="form-group">
+                    <label>Wederpartij</label>
+                    <input type="text" id="wederpartij" name="wederpartij" placeholder="Naam bedrijf of persoon" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    🚀 Claim Indienen
+                </button>
+            </form>
 
-      <div class="sample-grid">
-        <button class="sample-btn">
-          <strong>⚖️ Arbeidsrecht</strong>
-          Ontslag op staande voet zonder bewijs — Piet Janssen
-        </button>
-        <button class="sample-btn">
-          <strong>🏠 Huurrecht</strong>
-          CV-ketel defect, verhuurder reageert niet — Maria Garcia
-        </button>
-        <button class="sample-btn">
-          <strong>🚗 Consumentenrecht</strong>
-          Auto motorschade na 2 weken, dealer weigert — Tom Bakker
-        </button>
-      </div>
+            <div class="divider">— of laad voorbeeldclaim —</div>
 
-      <div style="margin-top:20px;padding:12px;background:#f0f4f8;border-radius:8px;font-size:11px;color:#6c757d;line-height:1.6;">
-        <strong style="color:#003366;">ℹ️ Over deze PoC</strong><br>
-        Dit is een showcase simulatie van de toekomstige agentic claimsflow bij ARAG.
-        {% if api_mode == "mock" %}
-        <br><br>🟡 <strong>Demo modus:</strong> Realistische voorbeeldantwoorden worden getoond. Stel <code>ANTHROPIC_API_KEY</code> in voor live AI.
-        {% endif %}
-      </div>
-    </div>
-  </div>
+            <div class="sample-claims">
+                <button class="btn btn-sample" onclick="loadSample('arbeidsrecht')">
+                    ⚖️ Arbeidsrecht<br><small>Ontslag op staande voet</small>
+                </button>
+                <button class="btn btn-sample" onclick="loadSample('huurrecht')">
+                    🏠 Huurrecht<br><small>Defecte cv-ketel</small>
+                </button>
+                <button class="btn btn-sample" onclick="loadSample('consumentenrecht')">
+                    🚗 Consumentenrecht<br><small>Auto non-conformiteit</small>
+                </button>
+            </div>
+        </section>
 
-  <!-- CENTER: Flow diagram + Jurist panel + Outcome -->
-  <div class="panel" id="flow-panel">
-    <div class="panel-header">🔄 Claimproces Flow</div>
+        <!-- CENTER: Flow Diagram -->
+        <section class="panel panel-flow">
+            <h2 class="panel-title">Agent Flow</h2>
+            <div class="flow-diagram" id="flowDiagram">
+                <div class="flow-node node-waiting" data-agent="binnenkomst">
+                    <div class="node-icon">📥</div>
+                    <div class="node-label">Claim Binnenkomst</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="intake">
+                    <div class="node-icon">🤖</div>
+                    <div class="node-label">Intake Agent</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="dekkingscheck">
+                    <div class="node-icon">🔍</div>
+                    <div class="node-label">Dekkingscheck</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="juridisch">
+                    <div class="node-icon">⚖️</div>
+                    <div class="node-label">Juridisch Beoordelaar</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting node-human" data-agent="jurist">
+                    <div class="node-icon">👤</div>
+                    <div class="node-label">Jurist Review</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="strategie">
+                    <div class="node-icon">📋</div>
+                    <div class="node-label">Strategie</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="communicatie">
+                    <div class="node-icon">✉️</div>
+                    <div class="node-label">Communicatie</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="afhandeling">
+                    <div class="node-icon">📁</div>
+                    <div class="node-label">Afhandeling</div>
+                    <div class="node-status-icon"></div>
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-node node-waiting" data-agent="uitkomst">
+                    <div class="node-icon">✅</div>
+                    <div class="node-label">Uitkomst</div>
+                    <div class="node-status-icon"></div>
+                </div>
+            </div>
 
-    <!-- Progress -->
-    <div class="progress-wrap">
-      <div class="progress-label">
-        <span>Voortgang</span>
-        <span id="progress-pct">0%</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
-    </div>
+            <!-- Jurist Checkpoint Panel -->
+            <div class="jurist-panel" id="juristPanel" style="display:none;">
+                <div class="jurist-header">⚠️ Jurist Actie Vereist</div>
+                <div class="jurist-summary" id="juristSummary"></div>
+                <div class="form-group">
+                    <label>Notitie (optioneel)</label>
+                    <textarea id="juristNote" rows="2" placeholder="Voeg een toelichting toe..."></textarea>
+                </div>
+                <div class="jurist-buttons">
+                    <button class="btn btn-approve" onclick="submitJuristDecision('goedkeuren')">✅ Goedkeuren</button>
+                    <button class="btn btn-escalate" onclick="submitJuristDecision('escaleren')">⚠️ Escaleren</button>
+                    <button class="btn btn-reject" onclick="submitJuristDecision('weigeren')">❌ Weigeren</button>
+                </div>
+            </div>
 
-    <!-- Jurist checkpoint panel -->
-    <div id="jurist-panel">
-      <div class="jurist-header">
-        ⚠️ Jurist Actie Vereist
-      </div>
-      <p style="font-size:12px;color:#6c757d;margin-bottom:10px;">
-        De eerste drie agents hebben de claim geanalyseerd. Uw beoordeling is vereist om door te gaan.
-      </p>
-      <div class="jurist-summary" id="jurist-summary">
-        Samenvatting wordt geladen...
-      </div>
-      <div class="jurist-actions">
-        <button class="btn btn-success" id="btn-goedkeuren">✅ Goedkeuren</button>
-        <button class="btn btn-warning" id="btn-escaleren">⚠️ Escaleren</button>
-        <button class="btn btn-danger" id="btn-weigeren">❌ Weigeren</button>
-      </div>
-      <textarea id="jurist-note" rows="2" placeholder="Optionele toelichting voor het dossier..."></textarea>
-    </div>
+            <!-- Outcome Card -->
+            <div class="outcome-card" id="outcomeCard" style="display:none;">
+                <div class="outcome-header" id="outcomeHeader"></div>
+                <div class="outcome-body" id="outcomeBody"></div>
+            </div>
+        </section>
 
-    <!-- Flow diagram -->
-    <div class="flow-container">
+        <!-- RIGHT: Agent Log -->
+        <section class="panel panel-log">
+            <h2 class="panel-title">Agent Output <span class="claim-id-badge" id="claimIdBadge"></span></h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-placeholder">Dien een claim in om de agent flow te starten...</div>
+            </div>
+        </section>
+    </main>
 
-      <!-- Start node -->
-      <div class="flow-node-wrap">
-        <div class="flow-node done" style="background:#e8f0fe;border-color:#003366;">
-          <div class="node-icon">📥</div>
-          <div class="node-name">Claim Binnenkomst</div>
-          <div class="node-status">Ingediend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-intake"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-intake">
-          <div class="status-dot"></div>
-          <div class="node-icon">🤖</div>
-          <div class="node-name">Intake Agent</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-dekkingscheck"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-dekkingscheck">
-          <div class="status-dot"></div>
-          <div class="node-icon">🔍</div>
-          <div class="node-name">Dekkingscheck</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-juridisch"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-juridisch">
-          <div class="status-dot"></div>
-          <div class="node-icon">⚖️</div>
-          <div class="node-name">Juridisch Beoordelaar</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-jurist"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting human" id="node-jurist">
-          <div class="status-dot"></div>
-          <div class="node-icon">👤</div>
-          <div class="node-name">Jurist Review</div>
-          <div class="node-status" style="color:#856404;font-weight:600;">Menselijk checkpoint</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-strategie"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-strategie">
-          <div class="status-dot"></div>
-          <div class="node-icon">📋</div>
-          <div class="node-name">Strategie Agent</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-communicatie"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-communicatie">
-          <div class="status-dot"></div>
-          <div class="node-icon">✉️</div>
-          <div class="node-name">Communicatie Agent</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-afhandeling"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-afhandeling">
-          <div class="status-dot"></div>
-          <div class="node-icon">📁</div>
-          <div class="node-name">Afhandeling Agent</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-      <div class="flow-connector" id="conn-outcome"></div>
-
-      <div class="flow-node-wrap">
-        <div class="flow-node waiting" id="node-outcome" style="border-color:#1a7a3f;background:#f0faf4;">
-          <div class="node-icon">✅</div>
-          <div class="node-name">Uitkomst Klant</div>
-          <div class="node-status">Wachtend</div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Outcome card -->
-    <div id="outcome-card">
-      <div class="outcome-header success">
-        <div>
-          <div class="outcome-status">✅ Goedgekeurd</div>
-          <div class="outcome-subtitle">Claim verwerkt</div>
-        </div>
-      </div>
-      <div class="outcome-body"></div>
-    </div>
-
-  </div>
-
-  <!-- RIGHT: Agent log -->
-  <div class="panel" id="log-panel">
-    <div class="panel-header"><span>⚡ Agent Log</span> — Real-time output</div>
-    <div class="log-container" id="log-container">
-      <div class="empty-state">
-        <div class="icon">🤖</div>
-        <span>Dien een claim in om de agents te starten</span>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script src="/static/app.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>

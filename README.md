@@ -1,56 +1,77 @@
 # ARAG Agentic Claimsflow — Proof of Concept
 
-Een visuele showcase simulatie van de toekomstige agent-gedreven claimsbehandeling bij ARAG Rechtsbijstand.
+Een end-to-end multi-agent demonstratie van het claimsafhandelingsproces bij ARAG Rechtsbijstand.
 
-## Overzicht
+## Wat is dit?
 
-Deze PoC demonstreert een end-to-end claimsflow met 7 gespecialiseerde AI agents:
+Deze PoC toont hoe AI-agents samenwerken om een juridische claim van intake tot afhandeling te verwerken, met een menselijke jurist als checkpoint.
 
-| Agent | Rol |
-|-------|-----|
-| 🤖 Intake Agent | Categorisering, rechtsgebied, urgentie |
-| 🔍 Dekkingscheck Agent | Polis/dekking verificatie |
-| ⚖️ Juridisch Beoordelaar | Juridische merites, slagingskans |
-| 👤 **Jurist Review** | **Menselijk checkpoint — go/no-go** |
-| 📋 Strategie Agent | Behandelstrategie en tijdlijn |
-| ✉️ Communicatie Agent | Klant- en wederpartijbrieven |
-| 📁 Afhandeling Agent | Dossierafronding, volgende stappen |
+## De 7-Agent Flow
 
-## Installatie
-
-```bash
-cd arag_poc
-pip install -r requirements.txt
+```
+📥 Claim Binnenkomst
+    ↓
+🤖 Intake Agent         — Analyseert claim, bepaalt rechtsgebied & urgentie
+    ↓
+🔍 Dekkingscheck Agent  — Controleert polisdekking en uitsluitingen
+    ↓
+⚖️ Juridisch Agent      — Beoordeelt juridische merites en slagingskans
+    ↓
+👤 JURIST CHECKPOINT    — Menselijke beslissing: goedkeuren / escaleren / weigeren
+    ↓
+📋 Strategie Agent      — Stelt behandelstrategie op
+    ↓
+✉️ Communicatie Agent   — Stelt brieven op aan klant en wederpartij
+    ↓
+📁 Afhandeling Agent    — Maakt dossiersamenvatting
+    ↓
+✅ Uitkomst
 ```
 
-## Starten
+## Quick Start
 
-**Demo modus** (geen API key nodig, realistische mock-antwoorden):
+### Installatie
+
 ```bash
-cd /pad/naar/project
+cd /home/user/Test
+pip install -r arag_poc/requirements.txt
+```
+
+### Demo Mode (geen API key vereist)
+
+```bash
 uvicorn arag_poc.app:app --reload
 ```
 
-**Live AI modus** (echte Claude API):
+Open http://localhost:8000 in uw browser.
+
+### Echte Claude API (optioneel)
+
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 uvicorn arag_poc.app:app --reload
 ```
 
-Open: http://localhost:8000
+## Mock Mode vs. Echte API
 
-## Gebruik
+| | Mock Mode | Echte API |
+|---|---|---|
+| API key | Niet vereist | Vereist |
+| Responses | Voorgedefinieerde voorbeeldteksten | Claude claude-sonnet-4-6 |
+| Kosten | Gratis | Standaard API-tarieven |
+| Demo | Ideaal voor presentaties | Ideaal voor productie-demo |
 
-1. Vul een claim in of gebruik een voorbeeldclaim (arbeidsrecht, huurrecht, consumentenrecht)
-2. Klik **Claim Indienen** — agents starten real-time
-3. Volg de voortgang in de flow-diagram en agent log
-4. Bij de **Jurist Review** stap: kies Goedkeuren / Escaleren / Weigeren
-5. De resterende agents verwerken de claim op basis van de beslissing
-6. Eindresultaat verschijnt onderaan de flow
+## Voorbeeldclaims
 
-## Technische opzet
+De UI bevat drie voorbeeldclaims:
+1. **Arbeidsrecht** — Ontslag op staande voet zonder bewijs
+2. **Huurrecht** — Defecte cv-ketel, verhuurder in gebreke
+3. **Consumentenrecht** — Non-conforme auto, dealer aansprakelijk
 
-- **Backend**: FastAPI + asyncio + Server-Sent Events (SSE)
-- **Frontend**: Vanilla JS + CSS animations
-- **AI**: Anthropic Claude claude-sonnet-4-6 (of mock in demo modus)
-- **State**: In-memory (PoC scope)
+## Technische Stack
+
+- **Backend**: FastAPI + uvicorn
+- **Streaming**: Server-Sent Events (SSE)
+- **Frontend**: Vanilla JS + CSS Grid
+- **AI**: Anthropic Claude claude-sonnet-4-6 (optioneel)
+- **Templates**: Jinja2
